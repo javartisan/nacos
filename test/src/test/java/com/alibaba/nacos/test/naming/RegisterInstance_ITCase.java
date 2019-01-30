@@ -15,6 +15,9 @@
  */
 package com.alibaba.nacos.test.naming;
 
+import com.alibaba.nacos.api.NacosFactory;
+import com.alibaba.nacos.api.PropertyKeyConst;
+import com.alibaba.nacos.api.exception.NacosException;
 import com.alibaba.nacos.api.naming.NamingFactory;
 import com.alibaba.nacos.api.naming.NamingService;
 import com.alibaba.nacos.api.naming.pojo.Instance;
@@ -28,10 +31,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static com.alibaba.nacos.test.naming.NamingBase.*;
@@ -58,6 +58,31 @@ public class RegisterInstance_ITCase {
             TimeUnit.SECONDS.sleep(10);
             naming = NamingFactory.createNamingService("127.0.0.1" + ":" + port);
         }
+    }
+
+    @Test
+    @Ignore
+    public void regService() throws NacosException, InterruptedException {
+
+        Properties properties = new Properties();
+        properties.put(PropertyKeyConst.SERVER_ADDR, "127.0.0.1:8848");
+        properties.put(PropertyKeyConst.NAMESPACE, "t3");
+
+        naming = NamingFactory.createNamingService(properties);
+
+        String serviceName = "dungu.test.10";
+        naming.registerInstance(serviceName, "127.0.0.1", 80, "c1");
+        naming.registerInstance(serviceName, "127.0.0.2", 80, "c2");
+        Thread.sleep(100000000L);
+    }
+
+    @Test
+    @Ignore
+    public void deregService() throws NacosException, InterruptedException {
+
+        String serviceName = "dungu.test.98";
+        System.out.println(naming.getAllInstances(serviceName));
+//        Thread.sleep(100000000L);
     }
 
     /**
@@ -91,7 +116,10 @@ public class RegisterInstance_ITCase {
      */
     @Test
     public void regDomClusterTest() throws Exception {
+
         String serviceName = randomDomainName();
+
+        System.err.println(serviceName);
 
         naming.registerInstance(serviceName, TEST_IP_4_DOM_1, TEST_PORT, TEST_NEW_CLUSTER_4_DOM_1);
 

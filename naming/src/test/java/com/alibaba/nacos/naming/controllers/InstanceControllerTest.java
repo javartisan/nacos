@@ -31,6 +31,7 @@ import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -45,7 +46,7 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * @author dungu.zpf
+ * @author <a href="mailto:zpf.073@gmail.com">nkorange</a>
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = MockServletContext.class)
@@ -84,9 +85,11 @@ public class InstanceControllerTest extends BaseTest {
         ipList.add(ipAddress);
         domain.updateIPs(ipList);
 
-        Mockito.when(domainsManager.getDomain("nacos.test.1")).thenReturn(domain);
+        Mockito.when(domainsManager.getDomain(UtilsAndCommons.getDefaultNamespaceId(), "nacos.test.1")).thenReturn(domain);
 
-        Mockito.when(domainsManager.addLock("nacos.test.1")).thenReturn(new ReentrantLock());
+        Mockito.when(domainsManager.addLockIfAbsent(
+            UtilsAndCommons.assembleFullServiceName(UtilsAndCommons.getDefaultNamespaceId(), "nacos.test.1")))
+            .thenReturn(new ReentrantLock());
 
         MockHttpServletRequestBuilder builder =
                 MockMvcRequestBuilders.put("/naming/instance")
@@ -131,12 +134,14 @@ public class InstanceControllerTest extends BaseTest {
         ipList.add(ipAddress);
         domain.updateIPs(ipList);
 
-        Mockito.when(domainsManager.getDomain("nacos.test.1")).thenReturn(domain);
+        Mockito.when(domainsManager.getDomain(UtilsAndCommons.getDefaultNamespaceId(), "nacos.test.1")).thenReturn(domain);
 
         MockHttpServletRequestBuilder builder =
-                MockMvcRequestBuilders.get("/naming/instances")
+                MockMvcRequestBuilders.get("/v1/ns/instances")
                         .param("serviceName", "nacos.test.1");
-        String actualValue = mockmvc.perform(builder).andReturn().getResponse().getContentAsString();
+
+        MockHttpServletResponse response = mockmvc.perform(builder).andReturn().getResponse();
+        String actualValue = response.getContentAsString();
         JSONObject result = JSON.parseObject(actualValue);
 
         Assert.assertEquals("nacos.test.1", result.getString("dom"));

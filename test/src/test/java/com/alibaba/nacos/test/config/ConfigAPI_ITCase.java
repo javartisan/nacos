@@ -18,16 +18,14 @@ package com.alibaba.nacos.test.config;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.nacos.api.NacosFactory;
 import com.alibaba.nacos.api.PropertyKeyConst;
-import com.alibaba.nacos.api.common.Constants;
 import com.alibaba.nacos.api.config.ConfigService;
 import com.alibaba.nacos.api.config.listener.AbstractListener;
 import com.alibaba.nacos.api.config.listener.Listener;
 import com.alibaba.nacos.api.exception.NacosException;
+import com.alibaba.nacos.client.config.http.MetricsHttpAgent;
+import com.alibaba.nacos.client.config.http.ServerHttpAgent;
 import com.alibaba.nacos.client.config.impl.HttpSimpleClient.HttpResult;
-import com.alibaba.nacos.client.config.impl.LocalConfigInfoProcessor;
-import com.alibaba.nacos.client.config.impl.ServerHttpAgent;
-import com.alibaba.nacos.client.logger.json.JSONObject;
-import com.alibaba.nacos.client.utils.StringUtils;
+import com.alibaba.nacos.client.config.http.HttpAgent;
 import com.alibaba.nacos.config.server.Config;
 import org.junit.After;
 import org.junit.Assert;
@@ -40,7 +38,6 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.Arrays;
 import java.util.List;
@@ -55,9 +52,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = Config.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class ConfigAPI_ITCase {
-    public static final long TIME_OUT = 3000;
+    public static final long TIME_OUT = 2000;
     public ConfigService iconfig = null;
-    ServerHttpAgent agent = null;
+    HttpAgent agent = null;
 
     static final String CONFIG_CONTROLLER_PATH = "/v1/cs/configs";
     String SPECIAL_CHARACTERS = "!@#$%^&*()_+-=_|/'?.";
@@ -76,12 +73,21 @@ public class ConfigAPI_ITCase {
         properties.put(PropertyKeyConst.SERVER_ADDR, "127.0.0.1"+":"+port);
         iconfig = NacosFactory.createConfigService(properties);
 
-        agent = new ServerHttpAgent(properties);
+        agent = new MetricsHttpAgent(new ServerHttpAgent(properties));
         agent.start();
     }
 
     @After
     public void cleanup() throws Exception {
+        HttpResult result = null;
+        try {
+            List<String> params = Arrays.asList("dataId", dataId, "group", group, "beta", "true");
+            result = agent.httpDelete(CONFIG_CONTROLLER_PATH + "/", null, params, agent.getEncode(), TIME_OUT);
+            Assert.assertEquals(HttpURLConnection.HTTP_OK, result.code);
+            Assert.assertEquals(true, JSON.parseObject(result.content).getBoolean("data"));
+        } catch (Exception e) {
+            Assert.assertTrue(false);
+        }
     }
 
     /**
@@ -139,7 +145,7 @@ public class ConfigAPI_ITCase {
         final String content = "test";
 
         boolean result = iconfig.publishConfig(dataId, null, content);
-        Thread.sleep(2*TIME_OUT);
+        Thread.sleep(TIME_OUT);
         Assert.assertTrue(result);
 
         String value = iconfig.getConfig(dataId, null, TIME_OUT);
@@ -223,7 +229,7 @@ public class ConfigAPI_ITCase {
     public void nacos_publishConfig_5() throws Exception {
         String content = "test";
         boolean result = iconfig.publishConfig(dataId, null, content);
-        Thread.sleep(2*TIME_OUT);
+        Thread.sleep(TIME_OUT);
         Assert.assertTrue(result);
 
         String value = iconfig.getConfig(dataId, null, TIME_OUT);
@@ -609,11 +615,13 @@ public class ConfigAPI_ITCase {
             Assert.assertEquals(HttpURLConnection.HTTP_OK, result.code);
             Assert.assertEquals("true", result.content);
 
-
             List<String> params = Arrays.asList("dataId", dataId, "group", group, "beta", "true");
             result = agent.httpGet(CONFIG_CONTROLLER_PATH + "/", null, params, agent.getEncode(), TIME_OUT);
             Assert.assertEquals(HttpURLConnection.HTTP_OK, result.code);
             Assert.assertEquals(content, JSON.parseObject(result.content).getJSONObject("data").getString("content"));
+            // delete data
+            result = agent.httpDelete(CONFIG_CONTROLLER_PATH + "/", null, params, agent.getEncode(), TIME_OUT);
+            Assert.assertEquals(HttpURLConnection.HTTP_OK, result.code);
         } catch (Exception e) {
             Assert.assertTrue(false);
         }

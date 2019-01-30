@@ -57,14 +57,14 @@ public class HealthCheckStatus {
     private static String buildKey(IpAddress ip) {
         try {
 
-            String clusterName = ip.getCluster().getName();
-            String dom = ip.serviceName();
+            String clusterName = ip.getClusterName();
+            String dom = ip.getServiceName();
             String datumKey = ip.getDatumKey();
             return dom + ":"
                     + clusterName + ":"
                     + datumKey;
         } catch (Throwable e) {
-            Loggers.SRV_LOG.error("BUILD-KEY", "Exception while set rt, ip " + ip.toJSON(), e);
+            Loggers.SRV_LOG.error("[BUILD-KEY] Exception while set rt, ip {}, error: {}", ip.toJSON(), e);
         }
 
         return ip.getDefaultKey();

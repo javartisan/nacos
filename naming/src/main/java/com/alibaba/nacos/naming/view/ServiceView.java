@@ -1,16 +1,31 @@
+/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.alibaba.nacos.naming.view;
 
 import com.alibaba.fastjson.JSON;
 
 /**
- * @author dungu.zpf
+ * @author <a href="mailto:zpf.073@gmail.com">nkorange</a>
  */
 public class ServiceView {
 
     private String name;
     private int clusterCount;
     private int ipCount;
-    private String status;
+    private int healthyInstanceCount;
 
     public String getName() {
         return name;
@@ -36,12 +51,12 @@ public class ServiceView {
         this.ipCount = ipCount;
     }
 
-    public String getStatus() {
-        return status;
+    public int getHealthyInstanceCount() {
+        return healthyInstanceCount;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public void setHealthyInstanceCount(int healthyInstanceCount) {
+        this.healthyInstanceCount = healthyInstanceCount;
     }
 
     @Override

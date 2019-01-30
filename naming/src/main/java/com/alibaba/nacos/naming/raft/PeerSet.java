@@ -66,7 +66,7 @@ public class PeerSet {
         if (STANDALONE_MODE) {
             RaftPeer local = local();
             local.state = RaftPeer.State.LEADER;
-            local.voteFor = NetUtils.localIP();
+            local.voteFor = NetUtils.localServer();
 
         }
     }
@@ -87,7 +87,10 @@ public class PeerSet {
             return true;
         }
 
-        Loggers.RAFT.info("[IS LEADER] leader: " + leader.ip + ", ip: " + ip);
+        if (leader == null) {
+            Loggers.RAFT.warn("[IS LEADER] no leader is available now!");
+            return false;
+        }
 
         return StringUtils.equals(leader.ip, ip);
     }
@@ -117,22 +120,27 @@ public class PeerSet {
         peers.put(candidate.ip, candidate);
 
         SortedBag ips = new TreeBag();
+        int maxApproveCount = 0;
+        String maxApprovePeer = null;
         for (RaftPeer peer : peers.values()) {
             if (StringUtils.isEmpty(peer.voteFor)) {
                 continue;
             }
 
             ips.add(peer.voteFor);
+            if (ips.getCount(peer.voteFor) > maxApproveCount) {
+                maxApproveCount = ips.getCount(peer.voteFor);
+                maxApprovePeer = peer.voteFor;
+            }
         }
 
-        String first = (String) ips.last();
-        if (ips.getCount(first) >= majorityCount()) {
-            RaftPeer peer = peers.get(first);
+        if (maxApproveCount >= majorityCount()) {
+            RaftPeer peer = peers.get(maxApprovePeer);
             peer.state = RaftPeer.State.LEADER;
 
             if (!Objects.equals(leader, peer)) {
                 leader = peer;
-                Loggers.RAFT.info(leader.ip + " has become the LEADER");
+                Loggers.RAFT.info("{} has become the LEADER", leader.ip);
             }
         }
 
@@ -142,7 +150,8 @@ public class PeerSet {
     public RaftPeer makeLeader(RaftPeer candidate) {
         if (!Objects.equals(leader, candidate)) {
             leader = candidate;
-            Loggers.RAFT.info(leader.ip + " has become the LEADER" + ",local :" + JSON.toJSONString(local()) + ", leader: " + JSON.toJSONString(leader));
+            Loggers.RAFT.info("{} has become the LEADER, local: {}, leader: {}",
+                leader.ip, JSON.toJSONString(local()), JSON.toJSONString(leader));
         }
 
         for (final RaftPeer peer : peers.values()) {
@@ -154,7 +163,8 @@ public class PeerSet {
                         @Override
                         public Integer onCompleted(Response response) throws Exception {
                             if (response.getStatusCode() != HttpURLConnection.HTTP_OK) {
-                                Loggers.RAFT.error("VIPSRV-RAFT", "get peer failed: " + response.getResponseBody() + ", peer: " + peer.ip);
+                                Loggers.RAFT.error("[NACOS-RAFT] get peer failed: {}, peer: {}",
+                                    response.getResponseBody(), peer.ip);
                                 peer.state = RaftPeer.State.FOLLOWER;
                                 return 1;
                             }
@@ -166,7 +176,7 @@ public class PeerSet {
                     });
                 } catch (Exception e) {
                     peer.state = RaftPeer.State.FOLLOWER;
-                    Loggers.RAFT.error("VIPSRV-RAFT", "error while getting peer from peer: " + peer.ip);
+                    Loggers.RAFT.error("[NACOS-RAFT] error while getting peer from peer: {}", peer.ip);
                 }
             }
         }
@@ -175,10 +185,10 @@ public class PeerSet {
     }
 
     public RaftPeer local() {
-        RaftPeer peer = peers.get(NetUtils.localIP());
+        RaftPeer peer = peers.get(NetUtils.localServer());
         if (peer == null) {
-            throw new IllegalStateException("unable to find local peer: " + NetUtils.localIP() + ", all peers: "
-                    + Arrays.toString(peers.keySet().toArray()));
+            throw new IllegalStateException("unable to find local peer: " + NetUtils.localServer() + ", all peers: "
+                + Arrays.toString(peers.keySet().toArray()));
         }
 
         return peer;
