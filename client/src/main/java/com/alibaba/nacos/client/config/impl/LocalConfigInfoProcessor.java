@@ -78,8 +78,10 @@ public class LocalConfigInfoProcessor {
         }
 
         if (JVMUtil.isMultiInstance()) {
+            // JVM多实例的话需要借助Nio FileLock加锁读取文件
             return ConcurrentDiskUtil.getFileContent(file, Constants.ENCODE);
         } else {
+            //不是多实例的话，直接读文件即可
             InputStream is = null;
             try {
                 is = new FileInputStream(file);

@@ -47,7 +47,7 @@ import java.util.Map;
 import static com.alibaba.nacos.core.utils.SystemUtils.LOCAL_IP;
 
 /**
- * 软负载客户端发布数据专用控制器
+ * 软负载客户端发布数据专用控制器; 用于发布配置的Controller
  *
  * @author leiwen
  */
