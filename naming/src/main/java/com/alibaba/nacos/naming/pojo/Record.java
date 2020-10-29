@@ -18,12 +18,12 @@ package com.alibaba.nacos.naming.pojo;
 
 /**
  * Record to transfer and store in Nacos cluster.
- *
+ * 是一个高级抽象类，Service以及Instance皆为其子类实现。
  * @author nkorange
  * @since 1.0.0
  */
 public interface Record {
-    
+
     /**
      * get the checksum of this record, usually for record comparison.
      *
