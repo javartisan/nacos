@@ -870,7 +870,7 @@ public class ServiceManager implements RecordListener<Service> {
             serviceName2Checksum.put(serviceName, checksum);
         }
     }
-
+    // 空服务会被清理,会检查 maxFinalizeCount次，当超过maxFinalizeCount次依旧没有势力存在则从内存中移除，但是nacos的缓存文件还是存在的
     private class EmptyServiceAutoClean implements Runnable {
 
         @Override
@@ -889,7 +889,7 @@ public class ServiceManager implements RecordListener<Service> {
                 }
                 stream.filter(entry -> {
                     final String serviceName = entry.getKey();
-                    return distroMapper.responsible(serviceName);
+                    return distroMapper.responsible(serviceName);//校验当前服务是否满足在当前节点处理的条件
                 }).forEach(entry -> stringServiceMap.computeIfPresent(entry.getKey(), (serviceName, service) -> {
                     if (service.isEmpty()) {
 
@@ -901,7 +901,7 @@ public class ServiceManager implements RecordListener<Service> {
                             Loggers.SRV_LOG.warn("namespace : {}, [{}] services are automatically cleaned", namespace,
                                 serviceName);
                             try {
-                                easyRemoveService(namespace, serviceName);
+                                easyRemoveService(namespace, serviceName); // 从内存中移除符合条件的服务名字。没有删除文件
                             } catch (Exception e) {
                                 Loggers.SRV_LOG.error("namespace : {}, [{}] services are automatically clean has "
                                     + "error : {}", namespace, serviceName, e);
